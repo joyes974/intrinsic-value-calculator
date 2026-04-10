@@ -1182,9 +1182,7 @@
             // Render each method card
             methods.forEach(m => {
                 const card = document.createElement('div');
-                card.className = \
-                    \
-                'method-card ' + (!m.valid ? 'na-card' : '');
+                card.className = 'method-card ' + (!m.valid ? 'na-card' : '');
 
                 if (!m.valid) {
                     card.innerHTML = `
