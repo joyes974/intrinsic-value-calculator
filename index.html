@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Intrinsic Value Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-card-hover: #1a2744;
+            --accent-primary: #00d4aa;
+            --accent-secondary: #7c3aed;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-info: #3b82f6;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #2d3a5c;
+            --gradient-1: linear-gradient(135deg, #00d4aa, #3b82f6);
+            --gradient-2: linear-gradient(135deg, #7c3aed, #ec4899);
+            --gradient-3: linear-gradient(135deg, #f59e0b, #ef4444);
+            --shadow-glow: 0 0 20px rgba(0, 212, 170, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 40px 20px 30px;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 4px;
+            background: var(--gradient-1);
+            border-radius: 2px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            font-weight: 300;
+        }
+
+        /* API Key & Search Section */
+        .search-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .api-key-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
+        }
+
+        .input-group input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--gradient-1);
+            color: #0f0f1a;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 170, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .api-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .api-hint a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        .api-hint a:hover {
+            text-decoration: underline;
+        }
+
+        /* Loading */
+        .loading-overlay {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .loading-overlay.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-overlay p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        /* Error */
+        .error-box {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            color: #fca5a5;
+            font-size: 0.95rem;
+        }
+
+        .error-box.active {
+            display: block;
+        }
+
+        /* Company Header */
+        .company-header {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
+        }
+
+        .company-header.active {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .company-logo {
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            object-fit: contain;
+            background: #fff;
+            padding: 4px;
+        }
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-info h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        .company-info .company-meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .current-price {
+            text-align: right;
+        }
+
+        .current-price .price {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+        }
+
+        .current-price .price-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Summary Bar */
+        .summary-bar {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
+        }
+
+        .summary-bar.active {
+            display: block;
+        }
+
+        .summary-bar h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--accent-primary);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-item .val {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .summary-item .lbl {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .val.undervalued { color: #34d399; }
+        .val.overvalued { color: #f87171; }
+        .val.fair { color: #fbbf24; }
+
+        /* Results Grid */
+        .results-container {
+            display: none;
+        }
+
+        .results-container.active {
+            display: block;
+        }
+
+        .methods-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 20px;
+        }
+
+        .method-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .method-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(0, 212, 170, 0.3);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .method-card-header {
+            padding: 20px 24px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .method-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .method-icon.dcf { background: rgba(0, 212, 170, 0.15); color: #00d4aa; }
+        .method-icon.ddm { background: rgba(124, 58, 237, 0.15); color: #a78bfa; }
+        .method-icon.graham { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .method-icon.earnings { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .method-icon.book { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+        .method-icon.peter { background: rgba(34, 211, 238, 0.15); color: #22d3ee; }
+        .method-icon.ev { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
+
+        .method-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .method-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .method-card-body {
+            padding: 0 24px 20px;
+        }
+
+        .intrinsic-value-display {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .iv-price {
+            font-size: 2.2rem;
+            font-weight: 800;
+        }
+
+        .iv-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .iv-badge.undervalued {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+        }
+
+        .iv-badge.overvalued {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+        }
+
+        .iv-badge.fair {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        .margin-of-safety {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 14px;
+        }
+
+        .margin-of-safety span {
+            font-weight: 600;
+        }
+
+        .method-details {
+            border-top: 1px solid var(--border-color);
+            padding-top: 14px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+
+        .detail-row .detail-label {
+            color: var(--text-muted);
+        }
+
+        .detail-row .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .method-note {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .na-card .method-card-body {
+            opacity: 0.5;
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            line-height: 1.7;
+            max-width: 700px;
+            margin: 20px auto 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8rem; }
+            .methods-grid { grid-template-columns: 1fr; }
+            .company-header.active { flex-direction: column; text-align: center; }
+            .current-price { text-align: center; }
+            .api-key-row, .search-row { flex-direction: column; }
+            .btn { width: 100%; justify-content: center; }
+        }
+
+        /* Assumptions panel */
+        .assumptions-panel {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px 30px;
+            margin-bottom: 24px;
+        }
+        .assumptions-panel.active { display: block; }
+        .assumptions-panel h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--accent-secondary);
+        }
+        .assumptions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .assumptions-grid .input-group label {
+            font-size: 0.72rem;
+        }
+        .assumptions-grid .input-group input {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>📈 Intrinsic Value Calculator</h1>
+            <p>Calculate the fair value of any US stock using multiple valuation methods</p>
+        </div>
+
+        <div class="search-section">
+            <div class="api-key-row">
+                <div class="input-group" style="flex:2">
+                    <label>Financial Modeling Prep API Key</label>
+                    <input type="password" id="apiKey" placeholder="Enter your free FMP API key" />
+                </div>
+            </div>
+            <p class="api-hint">
+                🔑 Get your free API key at
+                <a href="https://financialmodelingprep.com/register" target="_blank">financialmodelingprep.com/register</a>
+                — No credit card required, 250 requests/day.
+            </p>
+            <hr style="border:none;border-top:1px solid var(--border-color);margin:18px 0;">
+            <div class="search-row">
+                <div class="input-group" style="flex:2">
+                    <label>Stock Ticker</label>
+                    <input type="text" id="ticker" placeholder="e.g. AAPL, MSFT, GOOGL" />
+                </div>
+                <button class="btn btn-primary" id="calcBtn" onclick="calculate()">
+                    ⚡ Calculate Intrinsic Value
+                </button>
+            </div>
+        </div>
+
+        <div class="assumptions-panel" id="assumptionsPanel">
+            <h3>⚙️ Adjustable Assumptions</h3>
+            <div class="assumptions-grid">
+                <div class="input-group">
+                    <label>Discount Rate (%)</label>
+                    <input type="number" id="discountRate" value="10" step="0.5" min="1" max="30" />
+                </div>
+                <div class="input-group">
+                    <label>Terminal Growth Rate (%)</label>
+                    <input type="number" id="terminalGrowth" value="3" step="0.5" min="0" max="10" />
+                </div>
+                <div class="input-group">
+                    <label>Projection Years</label>
+                    <input type="number" id="projectionYears" value="10" step="1" min="3" max="20" />
+                </div>
+                <div class="input-group">
+                    <label>Margin of Safety (%)</label>
+                    <input type="number" id="marginOfSafety" value="25" step="5" min="0" max="50" />
+                </div>
+                <div class="input-group">
+                    <label>Required Return / Graham (%)</label>
+                    <input type="number" id="requiredReturn" value="10" step="0.5" min="1" max="30" />
+                </div>
+            </div>
+        </div>
+
+        <div class="error-box" id="errorBox"></div>
+        <div class="loading-overlay" id="loading">
+            <div class="spinner"></div>
+            <p>Fetching financial data & crunching numbers…</p>
+        </div>
+
+        <div class="company-header" id="companyHeader">
+            <img class="company-logo" id="companyLogo" src="" alt="" />
+            <div class="company-info">
+                <h2 id="companyName"></h2>
+                <div class="company-meta" id="companyMeta"></div>
+            </div>
+            <div class="current-price">
+                <div class="price-label">Current Price</div>
+                <div class="price" id="currentPrice"></div>
+            </div>
+        </div>
+
+        <div class="summary-bar" id="summaryBar">
+            <h3>📊 Valuation Summary</h3>
+            <div class="summary-grid" id="summaryGrid"></div>
+        </div>
+
+        <div class="results-container" id="results">
+            <div class="methods-grid" id="methodsGrid"></div>
+        </div>
+
+        <div class="disclaimer">
+            ⚠️ <strong>Disclaimer:</strong> This tool is for educational and informational purposes only.
+            It does not constitute financial advice. Always do your own research and consult a
+            qualified financial advisor before making investment decisions. Data sourced from
+            <a href="https://financialmodelingprep.com" target="_blank" style="color:var(--accent-primary)">Financial Modeling Prep</a>.
+        </div>
+    </div>
+
+    <script>
+        // Utility functions
+        const fmt = (n) => {
+            if (n === null || n === undefined || isNaN(n)) return 'N/A';
+            return '$' + Number(n).toFixed(2);
+        };
+        const fmtB = (n) => {
+            if (!n && n !== 0) return 'N/A';
+            const abs = Math.abs(n);
+            if (abs >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
+            if (abs >= 1e9) return '$' + (n / 1e9).toFixed(2) + 'B';
+            if (abs >= 1e6) return '$' + (n / 1e6).toFixed(2) + 'M';
+            return '$' + Number(n).toFixed(0);
+        };
+        const pct = (n) => {
+            if (n === null || n === undefined || isNaN(n)) return 'N/A';
+            return (n * 100).toFixed(2) + '%';
+        };
+
+        // API fetch helper
+        async function apiFetch(endpoint) {
+            const key = document.getElementById('apiKey').value.trim();
+            const url = `https://financialmodelingprep.com/api/v3/${endpoint}${endpoint.includes('?') ? '&' : '?'}apikey=${key}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`API Error ${res.status}: ${res.statusText}`);
+            const data = await res.json();
+            if (data['Error Message']) throw new Error(data['Error Message']);
+            return data;
+        }
+
+        function showError(msg) {
+            const box = document.getElementById('errorBox');
+            box.textContent = '❌ ' + msg;
+            box.classList.add('active');
+        }
+
+        function hideError() {
+            document.getElementById('errorBox').classList.remove('active');
+        }
+
+        // Allow Enter key to trigger calculation
+        document.getElementById('ticker').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') calculate();
+        });
+
+        async function calculate() {
+            const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+            const apiKey = document.getElementById('apiKey').value.trim();
+
+            hideError();
+
+            if (!apiKey) { showError('Please enter your Financial Modeling Prep API key.'); return; }
+            if (!ticker) { showError('Please enter a stock ticker symbol.'); return; }
+
+            // Show loading
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('results').classList.remove('active');
+            document.getElementById('companyHeader').classList.remove('active');
+            document.getElementById('summaryBar').classList.remove('active');
+            document.getElementById('assumptionsPanel').classList.remove('active');
+            document.getElementById('calcBtn').disabled = true;
+
+            try {
+                // Fetch all data in parallel
+                const [profile, income, cashflow, balance, ratios, quote, dcfApi, growth, dividends] = await Promise.all([
+                    apiFetch(`profile/${ticker}`),
+                    apiFetch(`income-statement/${ticker}?limit=10`),
+                    apiFetch(`cash-flow-statement/${ticker}?limit=10`),
+                    apiFetch(`balance-sheet-statement/${ticker}?limit=5`),
+                    apiFetch(`ratios/${ticker}?limit=5`),
+                    apiFetch(`quote/${ticker}`),
+                    apiFetch(`discounted-cash-flow/${ticker}`).catch(() => []),
+                    apiFetch(`financial-growth/${ticker}?limit=10`).catch(() => []),
+                    apiFetch(`historical-price-full/stock_dividend/${ticker}`).catch(() => ({ historical: [] })),
+                ]);
+
+                if (!profile || profile.length === 0) throw new Error(`No data found for ticker "${ticker}". Please check the symbol.`);
+
+                const p = profile[0];
+                const q = quote[0] || {};
+                const currentPrice = q.price || p.price;
+
+                if (!currentPrice) throw new Error('Could not retrieve current stock price.');
+
+                // Show company header
+                document.getElementById('companyLogo').src = p.image || '';
+                document.getElementById('companyLogo').alt = p.companyName;
+                document.getElementById('companyName').textContent = `${p.companyName} (${p.symbol})`;
+                document.getElementById('companyMeta').textContent = `${p.exchangeShortName} · ${p.sector || 'N/A'} · ${p.industry || 'N/A'}`;
+                document.getElementById('currentPrice').textContent = fmt(currentPrice);
+                document.getElementById('companyHeader').classList.add('active');
+                document.getElementById('assumptionsPanel').classList.add('active');
+
+                // Get assumptions
+                const discountRate = parseFloat(document.getElementById('discountRate').value) / 100;
+                const terminalGrowth = parseFloat(document.getElementById('terminalGrowth').value) / 100;
+                const projYears = parseInt(document.getElementById('projectionYears').value);
+                const mosPct = parseFloat(document.getElementById('marginOfSafety').value) / 100;
+                const reqReturn = parseFloat(document.getElementById('requiredReturn').value) / 100;
+
+                // Get key financial data
+                const latestIncome = income[0] || {};
+                const latestCF = cashflow[0] || {};
+                const latestBalance = balance[0] || {};
+                const latestRatios = ratios[0] || {};
+                const sharesOut = q.sharesOutstanding || latestIncome.weightedAverageShsOut || p.mktCap / currentPrice;
+
+                // ========== VALUATION METHODS ==========
+                const methods = [];
+
+                // 1. DCF - Free Cash Flow Model
+                (() => {
+                    try {
+                        const fcfs = cashflow.map(c => c.freeCashFlow).filter(x => x != null);
+                        if (fcfs.length < 2) { methods.push(naCard('DCF Free Cash Flow', 'dcf', 'Insufficient cash flow data')); return; }
+
+                        const avgFCF = fcfs.slice(0, 5).reduce((a, b) => a + b, 0) / Math.min(fcfs.length, 5);
+                        // Estimate growth from historical
+                        let fcfGrowth = 0;
+                        const growthData = growth.length > 0 ? growth : [];
+                        if (growthData.length > 1) {
+                            const rates = growthData.slice(0, 5).map(g => g.freeCashFlowGrowth).filter(x => x != null && isFinite(x));
+                            if (rates.length > 0) fcfGrowth = rates.reduce((a, b) => a + b, 0) / rates.length;
+                        }
+                        // Cap growth
+                        fcfGrowth = Math.max(-0.1, Math.min(fcfGrowth, 0.25));
+
+                        let totalPV = 0;
+                        for (let y = 1; y <= projYears; y++) {
+                            const projFCF = avgFCF * Math.pow(1 + fcfGrowth, y);
+                            totalPV += projFCF / Math.pow(1 + discountRate, y);
+                        }
+                        // Terminal value
+                        const termFCF = avgFCF * Math.pow(1 + fcfGrowth, projYears + 1);
+                        const termValue = termFCF / (discountRate - terminalGrowth);
+                        const pvTerminal = termValue / Math.pow(1 + discountRate, projYears);
+                        const enterpriseValue = totalPV + pvTerminal;
+
+                        // Net debt
+                        const totalDebt = latestBalance.totalDebt || 0;
+                        const cashEquiv = latestBalance.cashAndCashEquivalents || 0;
+                        const equityValue = enterpriseValue - totalDebt + cashEquiv;
+                        const ivPerShare = equityValue / sharesOut;
+                        const ivSafe = ivPerShare * (1 - mosPct);
+
+                        methods.push(buildCard({
+                            title: 'DCF — Free Cash Flow',
+                            icon: 'dcf',
+                            emoji: '💰',
+                            subtitle: 'Discounted Cash Flow using projected Free Cash Flow',
+                            iv: ivPerShare,
+                            ivSafe: ivSafe,
+                            currentPrice,
+                            details: [
+                                ['Avg FCF (5yr)', fmtB(avgFCF)],
+                                ['FCF Growth Rate', (fcfGrowth * 100).toFixed(1) + '%'],
+                                ['Discount Rate', (discountRate * 100).toFixed(1) + '%'],
+                                ['Terminal Growth', (terminalGrowth * 100).toFixed(1) + '%'],
+                                ['Enterprise Value', fmtB(enterpriseValue)],
+                                ['Net Debt', fmtB(totalDebt - cashEquiv)],
+                            ],
+                            note: 'Projects future free cash flows and discounts them to present value. Considered the gold standard of valuation.',
+                        }));
+                    } catch (e) {
+                        methods.push(naCard('DCF Free Cash Flow', 'dcf', e.message));
+                    }
+                })();
+
+                // 2. DCF - Earnings Based
+                (() => {
+                    try {
+                        const eps = q.eps || latestIncome.eps;
+                        if (!eps || eps <= 0) { methods.push(naCard('DCF Earnings', 'earnings', 'No positive EPS data')); return; }
+
+                        const earningsGrowthRates = (growth || []).slice(0, 5).map(g => g.epsgrowth).filter(x => x != null && isFinite(x));
+                        let epsGrowth = earningsGrowthRates.length > 0
+                            ? earningsGrowthRates.reduce((a, b) => a + b, 0) / earningsGrowthRates.length
+                            : 0.08;
+                        epsGrowth = Math.max(-0.05, Math.min(epsGrowth, 0.25));
+
+                        let totalPV = 0;
+                        for (let y = 1; y <= projYears; y++) {
+                            const projEPS = eps * Math.pow(1 + epsGrowth, y);
+                            totalPV += projEPS / Math.pow(1 + discountRate, y);
+                        }
+                        const termEPS = eps * Math.pow(1 + epsGrowth, projYears + 1);
+                        const termValue = termEPS / (discountRate - terminalGrowth);
+                        const pvTerminal = termValue / Math.pow(1 + discountRate, projYears);
+                        const ivPerShare = totalPV + pvTerminal;
+                        const ivSafe = ivPerShare * (1 - mosPct);
+
+                        methods.push(buildCard({
+                            title: 'DCF — Earnings Power',
+                            icon: 'earnings',
+                            emoji: '📊',
+                            subtitle: 'Discounted Cash Flow using EPS projections',
+                            iv: ivPerShare,
+                            ivSafe: ivSafe,
+                            currentPrice,
+                            details: [
+                                ['Current EPS', fmt(eps)],
+                                ['EPS Growth Rate', (epsGrowth * 100).toFixed(1) + '%'],
+                                ['Discount Rate', (discountRate * 100).toFixed(1) + '%'],
+                                ['Projection Years', projYears],
+                                ['PV of Earnings', fmt(totalPV)],
+                                ['PV of Terminal', fmt(pvTerminal)],
+                            ],
+                            note: 'Uses historical EPS growth to project future earnings, then discounts back to present.',
+                        }));
+                    } catch (e) {
+                        methods.push(naCard('DCF Earnings', 'earnings', e.message));
+                    }
+                })();
+
+                // 3. Benjamin Graham Formula
+                (() => {
+                    try {
+                        const eps = q.eps || latestIncome.eps;
+                        if (!eps || eps <= 0) { methods.push(naCard('Graham Formula', 'graham', 'No positive EPS data')); return; }
+
+                        const earningsGrowthRates = (growth || []).slice(0, 5).map(g => g.epsgrowth).filter(x => x != null && isFinite(x));
+                        let g = earningsGrowthRates.length > 0
+                            ? earningsGrowthRates.reduce((a, b) => a + b, 0) / earningsGrowthRates.length
+                            : 0.05;
+                        g = Math.max(0, Math.min(g, 0.20));
+                        const gPct = g * 100;
+
+                        // Graham Original: IV = EPS × (8.5 + 2g)
+                        const grahamOriginal = eps * (8.5 + 2 * gPct);
+
+                        // Graham Revised: IV = (EPS × (8.5 + 2g) × 4.4) / Y
+                        const Y = reqReturn * 100; // Corporate bond yield proxy
+                        const grahamRevised = (eps * (8.5 + 2 * gPct) * 4.4) / Y;
+
+                        const ivSafe = grahamRevised * (1 - mosPct);
+
+                        methods.push(buildCard({
+                            title: 'Graham Number',
+                            icon: 'graham',
+                            emoji: '🎩',
+                            subtitle: "Benjamin Graham's intrinsic value formula",
+                            iv: grahamRevised,
+                            ivSafe: ivSafe,
+                            currentPrice,
+                            details: [
+                                ['EPS (TTM)', fmt(eps)],
+                                ['Growth Rate (g)', gPct.toFixed(1) + '%'],
+                                ['Graham Original', fmt(grahamOriginal)],
+                                ['Graham Revised', fmt(grahamRevised)],
+                                ['Yield (Y)', Y.toFixed(1) + '%'],
+                            ],
+                            note: 'Graham\'s formula: IV = EPS × (8.5 + 2g) × 4.4 / Y. Where 8.5 is the base P/E for a no-growth company, g is 5-year growth rate, and Y is required return.',
+                        }));
+                    } catch (e) {
+                        methods.push(naCard('Graham Formula', 'graham', e.message));
+                    }
+                })();
+
+                // 4. Dividend Discount Model (DDM)
+                (() => {
+                    try {
+                        const divHistory = dividends.historical || [];
+                        if (divHistory.length < 4) { methods.push(naCard('Dividend Discount Model', 'ddm', 'Insufficient dividend history (needs 1+ years)')); return; }
+
+                        // Calculate annual dividend
+                        const latestYear = new Date(divHistory[0].date).getFullYear();
+                        const annualDiv = divHistory
+                            .filter(d => new Date(d.date).getFullYear() === latestYear || new Date(d.date).getFullYear() === latestYear - 1)
+                            .slice(0, 8)
+                            .reduce((sum, d) => sum + (d.adjDividend || d.dividend || 0), 0);
+
+                        const annualDivEst = annualDiv > 0 ? annualDiv : (divHistory[0].adjDividend || divHistory[0].dividend) * 4;
+
+                        if (!annualDivEst || annualDivEst <= 0) { methods.push(naCard('Dividend Discount Model', 'ddm', 'No dividend data')); return; }
+
+                        // Estimate dividend growth
+                        let divGrowth = 0.03;
+                        if (divHistory.length >= 8) {
+                            const recent = divHistory.slice(0, 4).reduce((s, d) => s + (d.adjDividend || d.dividend || 0), 0);
+                            const older = divHistory.slice(4, 8).reduce((s, d) => s + (d.adjDividend || d.dividend || 0), 0);
+                            if (older > 0) divGrowth = (recent / older) - 1;
+                        }
+                        divGrowth = Math.max(0, Math.min(divGrowth, 0.15));
+
+                        // Gordon Growth Model
+                        if (discountRate <= divGrowth) { methods.push(naCard('Dividend Discount Model', 'ddm', 'Growth rate exceeds discount rate')); return; }
+
+                        const ivGordon = annualDivEst * (1 + divGrowth) / (discountRate - divGrowth);
+                        const ivSafe = ivGordon * (1 - mosPct);
+
+                        // Two-stage DDM
+                        const highGrowthYears = 5;
+                        const highGrowth = Math.min(divGrowth * 1.5, 0.12);
+                        let pvDividends = 0;
+                        let lastDiv = annualDivEst;
+                        for (let y = 1; y <= highGrowthYears; y++) {
+                            lastDiv *= (1 + highGrowth);
+                            pvDividends += lastDiv / Math.pow(1 + discountRate, y);
+                        }
+                        const stableDiv = lastDiv * (1 + terminalGrowth);
+                        const termVal = stableDiv / (discountRate - terminalGrowth);
+                        const pvTerm = termVal / Math.pow(1 + discountRate, highGrowthYears);
+                        const twoStageIV = pvDividends + pvTerm;
+
+                        methods.push(buildCard({
+                            title: 'Dividend Discount Model',
+                            icon: 'ddm',
+                            emoji: '💵',
+                            subtitle: 'Gordon Growth Model & Two-Stage DDM',
+                            iv: ivGordon,
+                            ivSafe: ivSafe,
+                            currentPrice,
+                            details: [
+                                ['Annual Dividend', fmt(annualDivEst)],
+                                ['Dividend Growth', (divGrowth * 100).toFixed(1) + '%'],
+                                ['Gordon Growth IV', fmt(ivGordon)],
+                                ['Two-Stage DDM IV', fmt(twoStageIV)],
+                                ['Dividend Yield', ((annualDivEst / currentPrice) * 100).toFixed(2) + '%'],
+                            ],
+                            note: 'Values stocks based on the present value of expected future dividends. Best suited for mature, dividend-paying companies.',
+                        }));
+                    } catch (e) {
+                        methods.push(naCard('Dividend Discount Model', 'ddm', e.message));
+                    }
+                })();
+
+                // 5. Book Value / Net Asset Value
+                (() => {
+                    try {
+                        const bookValue = latestBalance.totalStockholdersEquity;
+                        if (!bookValue) { methods.push(naCard('Book Value Model', 'book', 'No book value data')); return; }
+
+                        const bvPerShare = bookValue / sharesOut;
+                        const pbRatio = currentPrice / bvPerShare;
+
+                        // Tangible book value
+                        const goodwill = latestBalance.goodwill || 0;
+                        const intangibles = latestBalance.intangibleAssets || 0;
+                        const tangibleBV = bookValue - goodwill - intangibles;
+                        const tbvPerShare = tangibleBV / sharesOut;
+
+                        // Graham's Net-Net (NCAV)
+                        const currentAssets = latestBalance.totalCurrentAssets || 0;
+                        const totalLiab = latestBalance.totalLiabilities || 0;
+                        const ncav = currentAssets - totalLiab;
+                        const ncavPerShare = ncav / sharesOut;
+
+                        const roe = latestRatios.returnOnEquity || (latestIncome.netIncome / bookValue);
+                        const fairPB = Math.max(1, Math.min(roe * 10, 5)); // rough fair P/B
+                        const ivEstimate = bvPerShare * fairPB;
+                        const ivSafe = ivEstimate * (1 - mosPct);
+
+                        methods.push(buildCard({
+                            title: 'Book Value / Asset-Based',
+                            icon: 'book',
+                            emoji: '📚',
+                            subtitle: 'Net Asset Value & Graham Net-Net',
+                            iv: ivEstimate,
+                            ivSafe: ivSafe,
+                            currentPrice,
+                            details: [
+                                ['Book Value/Share', fmt(bvPerShare)],
+                                ['Tangible BV/Share', fmt(tbvPerShare)],
+                                ['P/B Ratio', pbRatio.toFixed(2) + 'x'],
+                                ['Fair P/B (est.)', fairPB.toFixed(2) + 'x'],
+                                ['NCAV/Share', fmt(ncavPerShare)],
+                                ['ROE', pct(roe)],
+                            ],
+                            note: 'Values a company based on its net assets. NCAV (Net Current Asset Value) is Graham\'s ultra-conservative "net-net" approach.',
+                        }));
+                    } catch (e) {
+                        methods.push(naCard('Book Value Model', 'book', e.message));
+                    }
+                })();
+
+                // 6. Peter Lynch Fair Value (PEG)
+                (() => {
+                    try {
+                        const eps = q.eps || latestIncome.eps;
+                        const pe = q.pe || (currentPrice / eps);
+                        if (!eps || eps <= 0 || !pe) { methods.push(naCard('Peter Lynch / PEG', 'peter', 'No positive EPS data')); return; }
+
+                        const earningsGrowthRates = (growth || []).slice(0, 5).map(g => g.epsgrowth).filter(x => x != null && isFinite(x));
+                        let epsGrowth = earningsGrowthRates.length > 0
+                            ? earningsGrowthRates.reduce((a, b) => a + b, 0) / earningsGrowthRates.length
+                            : 0.08;
+                        epsGrowth = Math.max(0.01, Math.min(epsGrowth, 0.40));
+
+                        const epsGrowthPct = epsGrowth * 100;
+                        const peg = pe / epsGrowthPct;
+
+                        // Lynch: fair value when PEG = 1, so fair PE = growth rate
+                        const fairPE = epsGrowthPct;
+                        const lynchFairValue = eps * fairPE;
+
+                        // With dividends
+                        const divYield = q.dividendYield || 0;
+                        const adjustedPEG = pe / (epsGrowthPct + divYield);
+
+                        const ivSafe = lynchFairValue * (1 - mosPct);
+
+                        methods.push(buildCard({
+                            title: 'Peter Lynch / PEG',
+                            icon: 'peter',
+                            emoji: '🎯',
+                            subtitle: 'PEG Ratio & Lynch Fair Value',
+                            iv: lynchFairValue,
+                            ivSafe: ivSafe,
+                            currentPrice,
+                            details: [
+                                ['EPS (TTM)', fmt(eps)],
+                                ['P/E Ratio', pe.toFixed(2) + 'x'],
+                                ['EPS Growth', epsGrowthPct.toFixed(1) + '%'],
+                                ['PEG Ratio', peg.toFixed(2)],
+                                ['Adj PEG (w/ div)', adjustedPEG.toFixed(2)],
+                                ['Fair P/E (=growth)', fairPE.toFixed(1) + 'x'],
+                            ],
+                            note: 'Peter Lynch: a PEG ratio of 1 is fair value. PEG < 1 suggests undervaluation. Fair value = EPS × growth rate.',
+                        }));
+                    } catch (e) {
+                        methods.push(naCard('Peter Lynch / PEG', 'peter', e.message));
+                    }
+                })();
+
+                // 7. EV/EBITDA Relative Valuation
+                (() => {
+                    try {
+                        const ebitda = latestIncome.ebitda;
+                        const ev = q.marketCap + (latestBalance.totalDebt || 0) - (latestBalance.cashAndCashEquivalents || 0);
+                        if (!ebitda || ebitda <= 0) { methods.push(naCard('EV/EBITDA Valuation', 'ev', 'No positive EBITDA data')); return; }
+
+                        const evEbitda = ev / ebitda;
+
+                        // Fair EV/EBITDA varies by industry, use a moderate benchmark
+                        const fairMultiple = Math.min(15, Math.max(8, evEbitda * 0.8));
+                        const fairEV = ebitda * fairMultiple;
+                        const fairEquity = fairEV - (latestBalance.totalDebt || 0) + (latestBalance.cashAndCashEquivalents || 0);
+                        const ivPerShare = fairEquity / sharesOut;
+                        const ivSafe = ivPerShare * (1 - mosPct);
+
+                        methods.push(buildCard({
+                            title: 'EV/EBITDA Valuation',
+                            icon: 'ev',
+                            emoji: '🏢',
+                            subtitle: 'Enterprise Value to EBITDA multiple',
+                            iv: ivPerShare,
+                            ivSafe: ivSafe,
+                            currentPrice,
+                            details: [
+                                ['EBITDA', fmtB(ebitda)],
+                                ['Enterprise Value', fmtB(ev)],
+                                ['EV/EBITDA', evEbitda.toFixed(2) + 'x'],
+                                ['Fair Multiple (est.)', fairMultiple.toFixed(1) + 'x'],
+                                ['Fair EV', fmtB(fairEV)],
+                                ['Market Cap', fmtB(q.marketCap)],
+                            ],
+                            note: 'Compares enterprise value to earnings before interest, taxes, depreciation, and amortization. Useful for comparing companies with different capital structures.',
+                        }));
+                    } catch (e) {
+                        methods.push(naCard('EV/EBITDA Valuation', 'ev', e.message));
+                    }
+                })();
+
+                // Render results
+                renderResults(methods, currentPrice);
+
+            } catch (err) {
+                showError(err.message || 'An unexpected error occurred.');
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('calcBtn').disabled = false;
+            }
+        }
+
+        function buildCard({ title, icon, emoji, subtitle, iv, ivSafe, currentPrice, details, note }) {
+            const diff = ((iv - currentPrice) / currentPrice) * 100;
+            const verdict = diff > 15 ? 'undervalued' : diff < -15 ? 'overvalued' : 'fair';
+            const verdictLabel = diff > 15 ? 'Undervalued' : diff < -15 ? 'Overvalued' : 'Fairly Valued';
+            const mos = ((iv - currentPrice) / iv * 100);
+
+            return {
+                title, icon, emoji, subtitle, iv, ivSafe, currentPrice, details, note,
+                diff, verdict, verdictLabel, mos, valid: true
+            };
+        }
+
+        function naCard(title, icon, reason) {
+            return {
+                title, icon, valid: false, reason,
+                emoji: '⚠️', subtitle: '', iv: null, diff: 0, verdict: 'fair', verdictLabel: 'N/A'
+            };
+        }
+
+        function renderResults(methods, currentPrice) {
+            const grid = document.getElementById('methodsGrid');
+            grid.innerHTML = '';
+
+            // Summary bar
+            const validMethods = methods.filter(m => m.valid);
+            if (validMethods.length > 0) {
+                const avgIV = validMethods.reduce((s, m) => s + m.iv, 0) / validMethods.length;
+                const medianIV = validMethods.map(m => m.iv).sort((a, b) => a - b)[Math.floor(validMethods.length / 2)];
+                const minIV = Math.min(...validMethods.map(m => m.iv));
+                const maxIV = Math.max(...validMethods.map(m => m.iv));
+                const avgDiff = ((avgIV - currentPrice) / currentPrice) * 100;
+                const avgVerdict = avgDiff > 15 ? 'undervalued' : avgDiff < -15 ? 'overvalued' : 'fair';
+
+                const summaryGrid = document.getElementById('summaryGrid');
+                summaryGrid.innerHTML = `
+                    <div class="summary-item">
+                        <div class="val ${avgVerdict}">${fmt(avgIV)}</div>
+                        <div class="lbl">Average IV</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="val ${avgVerdict}">${fmt(medianIV)}</div>
+                        <div class="lbl">Median IV</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="val">${fmt(currentPrice)}</div>
+                        <div class="lbl">Current Price</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="val">${avgDiff > 0 ? '+' : ''}${avgDiff.toFixed(1)}%</div>
+                        <div class="lbl">Avg Upside/Downside</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="val">${fmt(minIV)}</div>
+                        <div class="lbl">Min IV</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="val">${fmt(maxIV)}</div>
+                        <div class="lbl">Max IV</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="val">${validMethods.length} / ${methods.length}</div>
+                        <div class="lbl">Methods Computed</div>
+                    </div>
+                `;
+                document.getElementById('summaryBar').classList.add('active');
+            }
+
+            // Render each method card
+            methods.forEach(m => {
+                const card = document.createElement('div');
+                card.className = \
+                    \
+                'method-card ' + (!m.valid ? 'na-card' : '');
+
+                if (!m.valid) {
+                    card.innerHTML = `
+                        <div class="method-card-header">
+                            <div>
+                                <div class="method-title">${m.emoji || '⚠️'} ${m.title}</div>
+                                <div class="method-subtitle">Not Available</div>
+                            </div>
+                            <div class="method-icon ${m.icon}">—</div>
+                        </div>
+                        <div class="method-card-body">
+                            <div class="method-note">⚠️ ${m.reason || 'Insufficient data for this valuation method.'}</div>
+                        </div>
+                    `;
+                } else {
+                    const detailsHTML = m.details.map(([label, value]) =>
+                        `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>`
+                    ).join('');
+
+                    card.innerHTML = `
+                        <div class="method-card-header">
+                            <div>
+                                <div class="method-title">${m.emoji} ${m.title}</div>
+                                <div class="method-subtitle">${m.subtitle}</div>
+                            </div>
+                            <div class="method-icon ${m.icon}">${m.diff > 15 ? '▲' : m.diff < -15 ? '▼' : '●'}</div>
+                        </div>
+                        <div class="method-card-body">
+                            <div class="intrinsic-value-display">
+                                <span class="iv-price" style="color: ${m.verdict === 'undervalued' ? '#34d399' : m.verdict === 'overvalued' ? '#f87171' : '#fbbf24'}">${fmt(m.iv)}</span>
+                                <span class="iv-badge ${m.verdict}">${m.verdictLabel} (${m.diff > 0 ? '+' : ''}${m.diff.toFixed(1)}%)</span>
+                            </div>
+                            <div class="margin-of-safety">
+                                IV with ${(parseFloat(document.getElementById('marginOfSafety').value))}% Margin of Safety: <span>${fmt(m.ivSafe)}</span>
+                            </div>
+                            <div class="method-details">
+                                ${detailsHTML}
+                            </div>
+                            <div class="method-note">${m.note}</div>
+                        </div>
+                    `;
+                }
+
+                grid.appendChild(card);
+            });
+
+            document.getElementById('results').classList.add('active');
+        }
+    </script>
+</body>
+</html>
